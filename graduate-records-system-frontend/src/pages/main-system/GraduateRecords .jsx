@@ -15,6 +15,19 @@ const GraduateRecords = ({ currentUser, onLogout }) => {
   const [selectedUpload, setSelectedUpload] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const { t, i18n } = useTranslation();
+  const [faculties, setFaculties] = useState([]);
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      try {
+        const res = await fetch('http://localhost:5005/alumni-portal/faculties');
+        const data = await res.json();
+        if (data.status === 'success') setFaculties(data.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchFaculties();
+  }, []);
 
   const [newGraduate, setNewGraduate] = useState({
     fullName: '',
@@ -177,7 +190,19 @@ const GraduateRecords = ({ currentUser, onLogout }) => {
             <div className="manual-entry-grid">
               <input type="text" placeholder={t('fullName')} value={newGraduate.fullName} onChange={(e) => setNewGraduate({...newGraduate, fullName: e.target.value})} className="input-field"/>
               <input type="text" placeholder={t('nationalId')} value={newGraduate.nationalId} onChange={(e) => setNewGraduate({...newGraduate, nationalId: e.target.value})} className="input-field"/>
-              <input type="text" placeholder={t('faculty')} value={newGraduate.faculty} onChange={(e) => setNewGraduate({...newGraduate, faculty: e.target.value})} className="input-field"/>
+              <select 
+  value={newGraduate.faculty} 
+  onChange={(e) => setNewGraduate({...newGraduate, faculty: e.target.value})} 
+  className="input-field"
+>
+  <option value="">{t('faculty')}</option>
+  {faculties.map((f, idx) => (
+    <option key={idx} value={i18n.language === 'ar' ? f.ar : f.en}>
+      {i18n.language === 'ar' ? f.ar : f.en}
+    </option>
+  ))}
+</select>
+
               <input type="text" placeholder={t('department')} value={newGraduate.department} onChange={(e) => setNewGraduate({...newGraduate, department: e.target.value})} className="input-field"/>
               <input type="text" placeholder={t('graduationYear')} value={newGraduate.graduationYear} onChange={(e) => setNewGraduate({...newGraduate, graduationYear: e.target.value})} className="input-field"/>
             </div>

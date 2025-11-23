@@ -12,48 +12,42 @@ const App = () => {
   const handleLogout = () => setCurrentUser(null);
 
   return (
+    // <Router>
+    //   <Routes>
+    //     <Route
+    //       path="/graduates-records-system/login"
+    //       element={
+    //         currentUser
+    //           ? <Navigate to="/graduates-records-system/records" />
+    //           : authMode === 'login'
+    //             ? <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthMode('register')} />
+    //             : <Register onSwitchToLogin={() => setAuthMode('login')} />
+    //       }
+    //     />
+    //     <Route
+    //       path="/graduates-records-system/register"
+    //       element={
+    //         currentUser
+    //           ? <Navigate to="/graduates-records-system/records" />
+    //           : <Register onSwitchToLogin={() => setAuthMode('login')} />
+    //       }
+    //     />
+    //     <Route
+    //       path="/graduates-records-system/records"
+    //       element={
+    //         currentUser
+    //           ? <GraduateRecords currentUser={currentUser} onLogout={handleLogout} />
+    //           : <Navigate to="/graduates-records-system/login" />
+    //       }
+    //     />
+    //     <Route
+    //       path="*"
+    //       element={<Navigate to={currentUser ? "/graduates-records-system/records" : "/graduates-records-system/login"} />}
+    //     />
+    //   </Routes>
+    // </Router>
+
     <Router>
-      <Routes>
-        <Route
-          path="/graduates-records-system/login"
-          element={
-            currentUser
-              ? <Navigate to="/graduates-records-system/records" />
-              : authMode === 'login'
-                ? <Login onLogin={handleLogin} onSwitchToRegister={() => setAuthMode('register')} />
-                : <Register onSwitchToLogin={() => setAuthMode('login')} />
-          }
-        />
-        <Route
-          path="/graduates-records-system/register"
-          element={
-            currentUser
-              ? <Navigate to="/graduates-records-system/records" />
-              : <Register onSwitchToLogin={() => setAuthMode('login')} />
-          }
-        />
-        <Route
-          path="/graduates-records-system/records"
-          element={
-            currentUser
-              ? <GraduateRecords currentUser={currentUser} onLogout={handleLogout} />
-              : <Navigate to="/graduates-records-system/login" />
-          }
-        />
-        <Route
-          path="*"
-          element={<Navigate to={currentUser ? "/graduates-records-system/records" : "/graduates-records-system/login"} />}
-        />
-      </Routes>
-    </Router>
-
-    
-  );
-};
-
-export default App;
-
-{/* <Router>
     <Routes>
       <Route path="/" element={<Navigate to="/graduates-records-system/login" />} />
       <Route path="/graduates-records-system/login" element={<Login />} />
@@ -65,4 +59,12 @@ export default App;
       <Route path="*" element={<Navigate to="/graduates-records-system/login" />} />
     </Routes>
   </Router>
-   */}
+   
+
+    
+  );
+};
+
+export default App;
+
+
