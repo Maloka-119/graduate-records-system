@@ -47,22 +47,24 @@ const App = () => {
       </Routes>
     </Router>
 
+  //   <Router>
+  //   <Routes>
+  //     <Route path="/" element={<Navigate to="/graduates-records-system/login" />} />
+  //     <Route path="/graduates-records-system/login" element={<Login />} />
+  //     <Route path="/graduates-records-system/register" element={<Register />} />
+  //     <Route 
+  //       path="/graduates-records-system/records" 
+  //       element={<GraduateRecords currentUser={currentUser} onLogout={handleLogout} />} 
+  //     />
+  //     <Route path="*" element={<Navigate to="/graduates-records-system/login" />} />
+  //   </Routes>
+  // </Router>
+   
+
     
   );
 };
 
 export default App;
 
-{/* <Router>
-    <Routes>
-      <Route path="/" element={<Navigate to="/graduates-records-system/login" />} />
-      <Route path="/graduates-records-system/login" element={<Login />} />
-      <Route path="/graduates-records-system/register" element={<Register />} />
-      <Route 
-        path="/graduates-records-system/records" 
-        element={<GraduateRecords currentUser={currentUser} onLogout={handleLogout} />} 
-      />
-      <Route path="*" element={<Navigate to="/graduates-records-system/login" />} />
-    </Routes>
-  </Router>
-   */}
+
