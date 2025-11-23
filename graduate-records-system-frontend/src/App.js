@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/login/Login';
 import Register from './pages/register/Register';
-import GraduateRecords from './pages/main-system/GraduateRecords .jsx';
+import GraduateRecords from './pages/main-system/GraduateRecords.jsx';
 
 const App = () => {
   const [currentUser, setCurrentUser] = useState(null);
