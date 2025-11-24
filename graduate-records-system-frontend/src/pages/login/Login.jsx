@@ -22,7 +22,7 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('http://localhost:5002/graduates-system/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

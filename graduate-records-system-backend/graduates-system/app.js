@@ -1,9 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
 
-const sequelize = require('./config/database');
-const authRoutes = require('./routes/authRoutes');
+const sequelize = require("./config/database");
+const authRoutes = require("./routes/authRoutes");
+const graduateRoutes = require("./routes/graduateRoutes");
 
 const app = express();
 
@@ -13,24 +14,25 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/graduates-system/auth', authRoutes);
+app.use("/graduates-system/auth", authRoutes);
+app.use("/graduates-system/api", graduateRoutes);
 
 // Health check endpoint
-app.get('/graduates-system/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Graduates system is running' });
+app.get("/graduates-system/health", (req, res) => {
+  res.json({ status: "ok", message: "Graduates system is running" });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  res.status(404).json({ message: "Route not found" });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode).json({
-    message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    message: err.message || "Internal Server Error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
@@ -38,9 +40,9 @@ app.use((err, req, res, next) => {
 async function testConnection() {
   try {
     await sequelize.authenticate();
-    console.log('Database connection established successfully.');
+    console.log("Database connection established successfully.");
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
+    console.error("Unable to connect to the database:", error);
   }
 }
 
@@ -48,5 +50,3 @@ async function testConnection() {
 testConnection();
 
 module.exports = app;
-
-
