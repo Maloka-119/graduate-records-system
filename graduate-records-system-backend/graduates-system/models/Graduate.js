@@ -1,20 +1,23 @@
-// models/Graduate.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/database");
 
 const Graduate = sequelize.define(
   "Graduate",
   {
+    full_name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
     national_id: {
       type: DataTypes.STRING,
       primaryKey: true,
       allowNull: false,
     },
-    birth_date: {
-      type: DataTypes.DATE,
+    faculty: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
-    faculty: {
+    department: {
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -33,7 +36,7 @@ const Graduate = sequelize.define(
   },
   {
     tableName: "graduates",
-    timestamps: false, // 🔥 غيري لـ false علشان توقفي الـtimestamps
+    timestamps: false,
     underscored: true,
   }
 );

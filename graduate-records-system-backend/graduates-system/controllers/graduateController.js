@@ -8,6 +8,7 @@ const XLSX = require("xlsx");
  * Handle both JSON data and file uploads (Excel, JSON, CSV)
  */
 const addGraduates = asyncHandler(async (req, res) => {
+  console.log("🎯 [CONTROLLER] Reached addGraduates controller");
   if (!req.user) {
     return res.status(401).json({ message: "Not authenticated" });
   }
@@ -83,24 +84,28 @@ const addGraduates = asyncHandler(async (req, res) => {
         }
 
         // إنشاء الخريج
+        // إنشاء الخريج
         const newGraduate = await Graduate.create({
+          full_name: graduateData.fullName,
           national_id: graduateData.nationalId,
-          birth_date: graduateData["birth-date"],
           faculty: graduateData.faculty,
-          graduation_year: graduateData["graduation-year"],
+          department: graduateData.department,
+          graduation_year: graduateData.graduationYear,
           created_by: currentUserId,
         });
 
         results.added++;
 
         addedGraduates.push({
+          fullName: newGraduate.full_name,
           nationalId: newGraduate.national_id,
-          "birth-date": newGraduate.birth_date,
           faculty: newGraduate.faculty,
-          "graduation-year": newGraduate.graduation_year,
+          department: newGraduate.department,
+          graduationYear: newGraduate.graduation_year,
         });
       } catch (error) {
         results.errors.push({
+          fullName: graduateData.fullName,
           nationalId: graduateData.nationalId,
           error: error.message,
         });
@@ -173,29 +178,37 @@ function processExcelFile(file) {
 
     return jsonData
       .map((row) => {
-        // دعم أسماء أعمدة مختلفة
+        // دعم أسماء أعمدة مختلفة للحقول الجديدة
+        const fullName =
+          row.fullName ||
+          row["الاسم بالكامل"] ||
+          row["Full Name"] ||
+          row["full_name"] ||
+          row["اسم الطالب"]; // دعم أسماء عربية
+
         const nationalId =
           row.nationalId ||
           row["رقم قومي"] ||
           row["National ID"] ||
           row["national_id"];
-        const birthDate =
-          row["birth-date"] ||
-          row["تاريخ الميلاد"] ||
-          row["Birth Date"] ||
-          row["birth_date"];
+
         const faculty = row.faculty || row["كلية"] || row["Faculty"];
+
+        const department =
+          row.department || row["قسم"] || row["Department"] || row["القسم"];
+
         const graduationYear =
-          row["graduation-year"] ||
+          row["graduationYear"] ||
           row["سنة التخرج"] ||
           row["Graduation Year"] ||
           row["graduation_year"];
 
         return {
+          fullName: fullName?.toString(),
           nationalId: nationalId?.toString(),
-          "birth-date": birthDate,
           faculty: faculty?.toString(),
-          "graduation-year": parseInt(graduationYear) || graduationYear,
+          department: department?.toString(),
+          graduationYear: parseInt(graduationYear) || graduationYear,
         };
       })
       .filter((item) => item.nationalId && item.nationalId.trim() !== "");
@@ -211,10 +224,11 @@ function processCSVFile(file) {
 
 function validateGraduateStructure(data) {
   const requiredFields = [
+    "fullName",
     "nationalId",
-    "birth-date",
     "faculty",
-    "graduation-year",
+    "department",
+    "graduationYear",
   ];
 
   for (const field of requiredFields) {
@@ -226,10 +240,10 @@ function validateGraduateStructure(data) {
     }
   }
 
-  if (typeof data["graduation-year"] !== "number") {
+  if (typeof data["graduationYear"] !== "number") {
     return {
       isValid: false,
-      message: "graduation-year must be a number",
+      message: "graduationYear must be a number",
     };
   }
 
