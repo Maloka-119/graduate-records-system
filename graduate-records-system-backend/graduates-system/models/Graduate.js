@@ -33,10 +33,20 @@ const Graduate = sequelize.define(
         key: "id",
       },
     },
+    batch_id: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    created_at: {
+      // 🔥 أضفت الـcreated_at هنا
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
   },
   {
     tableName: "graduates",
-    timestamps: false,
+    timestamps: false, // 🔥 لسه false علشان مش محتاجين updated_at
     underscored: true,
   }
 );

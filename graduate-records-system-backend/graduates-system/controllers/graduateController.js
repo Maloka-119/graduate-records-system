@@ -1,14 +1,14 @@
 // controllers/graduateController.js
 const asyncHandler = require("express-async-handler");
-const { Graduate } = require("../models");
+const { Graduate, User } = require("../models");
 const XLSX = require("xlsx");
+const sequelize = require("../config/database");
 
 /**
  * POST /graduates-system/api/graduates
  * Handle both JSON data and file uploads (Excel, JSON, CSV)
  */
 const addGraduates = asyncHandler(async (req, res) => {
-  console.log("🎯 [CONTROLLER] Reached addGraduates controller");
   if (!req.user) {
     return res.status(401).json({ message: "Not authenticated" });
   }
@@ -24,20 +24,14 @@ const addGraduates = asyncHandler(async (req, res) => {
   const addedGraduates = [];
   let graduatesArray = [];
 
-  console.log("🔵 [PROCESSOR] Starting data processing...");
+  const batchId = `batch_${Date.now()}_${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
 
   try {
-    // 🔥 تحديد مصدر البيانات
-    if (req.file) {
-      // ملف مرفوع
-      console.log(
-        "🔵 [PROCESSOR] Processing uploaded file:",
-        req.file.originalname
-      );
-      graduatesArray = await processUploadedFile(req.file);
+    if (req.files && req.files.length > 0) {
+      graduatesArray = await processUploadedFile(req.files[0]);
     } else if (req.body && req.body.graduates) {
-      // JSON مباشر من الـbody
-      console.log("🔵 [PROCESSOR] Processing JSON data from body");
       graduatesArray = Array.isArray(req.body.graduates)
         ? req.body.graduates
         : [req.body.graduates];
@@ -47,18 +41,16 @@ const addGraduates = asyncHandler(async (req, res) => {
       });
     }
 
-    console.log("🔵 [PROCESSOR] Extracted data:", graduatesArray);
-
     if (graduatesArray.length === 0) {
       return res.status(400).json({
         message: "No valid data found in the provided source.",
       });
     }
 
-    // معالجة كل خريج
+    const currentUser = await User.findByPk(currentUserId);
+
     for (const graduateData of graduatesArray) {
       try {
-        // التحقق من الهيكل
         const validationResult = validateGraduateStructure(graduateData);
         if (!validationResult.isValid) {
           results.invalidStructure++;
@@ -69,7 +61,6 @@ const addGraduates = asyncHandler(async (req, res) => {
           continue;
         }
 
-        // التحقق من التكرار
         const existingGraduate = await Graduate.findOne({
           where: { national_id: graduateData.nationalId },
         });
@@ -83,8 +74,6 @@ const addGraduates = asyncHandler(async (req, res) => {
           continue;
         }
 
-        // إنشاء الخريج
-        // إنشاء الخريج
         const newGraduate = await Graduate.create({
           full_name: graduateData.fullName,
           national_id: graduateData.nationalId,
@@ -92,6 +81,7 @@ const addGraduates = asyncHandler(async (req, res) => {
           department: graduateData.department,
           graduation_year: graduateData.graduationYear,
           created_by: currentUserId,
+          batch_id: batchId,
         });
 
         results.added++;
@@ -112,26 +102,28 @@ const addGraduates = asyncHandler(async (req, res) => {
       }
     }
 
-    // إعداد الـresponse
     const response = {
       message: `Processed ${graduatesArray.length} graduates`,
+      metadata: {
+        batchId: batchId,
+        createdBy: currentUser.email,
+        createdByName: currentUser.full_name,
+        createdAt: new Date().toISOString(),
+      },
       results: results,
       addedGraduates: addedGraduates,
     };
 
-    // إضافة معلومات الملف لو كان ملف مرفوع
-    if (req.file) {
+    if (req.files && req.files.length > 0) {
       response.fileInfo = {
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size,
-        extractedData: graduatesArray,
+        filename: req.files[0].originalname,
+        mimetype: req.files[0].mimetype,
+        size: req.files[0].size,
       };
     }
 
     res.json(response);
   } catch (error) {
-    console.log("🔴 [PROCESSOR] General error:", error);
     res.status(500).json({
       message: "Error processing data",
       error: error.message,
@@ -139,10 +131,7 @@ const addGraduates = asyncHandler(async (req, res) => {
   }
 });
 
-// 🔥 دوال معالجة الملفات
 async function processUploadedFile(file) {
-  console.log("🔵 [FILE PROCESSOR] Processing file type:", file.mimetype);
-
   switch (file.mimetype) {
     case "application/json":
       return processJSONFile(file);
@@ -176,32 +165,76 @@ function processExcelFile(file) {
     const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+    if (jsonData.length === 0) {
+      const alternativeData = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+      });
+
+      if (alternativeData.length > 1) {
+        const headers = alternativeData[0];
+        return alternativeData.slice(1).map((row) => {
+          const obj = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index];
+          });
+          return obj;
+        });
+      }
+    }
+
     return jsonData
       .map((row) => {
-        // دعم أسماء أعمدة مختلفة للحقول الجديدة
         const fullName =
           row.fullName ||
+          row.full_name ||
+          row["full_name"] ||
+          row["fullName"] ||
           row["الاسم بالكامل"] ||
           row["Full Name"] ||
-          row["full_name"] ||
-          row["اسم الطالب"]; // دعم أسماء عربية
+          row["اسم الطالب"] ||
+          row["Name"] ||
+          row["name"] ||
+          row[0];
 
         const nationalId =
           row.nationalId ||
+          row.national_id ||
+          row["national_id"] ||
+          row["nationalId"] ||
           row["رقم قومي"] ||
           row["National ID"] ||
-          row["national_id"];
+          row["ID"] ||
+          row["id"] ||
+          row[1];
 
-        const faculty = row.faculty || row["كلية"] || row["Faculty"];
+        if (!nationalId || !fullName) {
+          return null;
+        }
+
+        const faculty =
+          row.faculty ||
+          row["faculty"] ||
+          row["كلية"] ||
+          row["Faculty"] ||
+          row[2];
 
         const department =
-          row.department || row["قسم"] || row["Department"] || row["القسم"];
+          row.department ||
+          row["department"] ||
+          row["قسم"] ||
+          row["Department"] ||
+          row["القسم"] ||
+          row[3];
 
         const graduationYear =
+          row.graduationYear ||
+          row.graduation_year ||
+          row["graduation_year"] ||
           row["graduationYear"] ||
           row["سنة التخرج"] ||
           row["Graduation Year"] ||
-          row["graduation_year"];
+          row["Year"] ||
+          row[4];
 
         return {
           fullName: fullName?.toString(),
@@ -211,14 +244,15 @@ function processExcelFile(file) {
           graduationYear: parseInt(graduationYear) || graduationYear,
         };
       })
-      .filter((item) => item.nationalId && item.nationalId.trim() !== "");
+      .filter(
+        (item) => item && item.nationalId && item.nationalId.trim() !== ""
+      );
   } catch (error) {
     throw new Error(`Error processing Excel file: ${error.message}`);
   }
 }
 
 function processCSVFile(file) {
-  // CSV بيكون نفس Excel في المعالجة
   return processExcelFile(file);
 }
 
@@ -250,4 +284,160 @@ function validateGraduateStructure(data) {
   return { isValid: true };
 }
 
-exports.addGraduates = addGraduates;
+/**
+ * GET /graduates-system/api/graduates/batch/:batchId
+ * Get all graduates for a specific batch
+ */
+const getGraduatesByBatch = asyncHandler(async (req, res) => {
+  const { batchId } = req.params;
+
+  try {
+    const graduates = await Graduate.findAll({
+      where: { batch_id: batchId },
+      include: [
+        {
+          model: User,
+          as: "creator",
+          attributes: ["id", "email", "full_name"],
+        },
+      ],
+      order: [["full_name", "ASC"]],
+    });
+
+    if (graduates.length === 0) {
+      return res.status(404).json({
+        message: "No graduates found for this batch",
+      });
+    }
+
+    res.json({
+      batchId: batchId,
+      totalGraduates: graduates.length,
+      graduates: graduates.map((grad) => ({
+        fullName: grad.full_name,
+        nationalId: grad.national_id,
+        faculty: grad.faculty,
+        department: grad.department,
+        graduationYear: grad.graduation_year,
+        createdBy: grad.creator?.email,
+        createdByName: grad.creator?.full_name,
+        createdAt: grad.created_at,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching batch graduates",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * DELETE /graduates-system/api/graduates/batch/:batchId
+ * Delete all graduates in a specific batch
+ */
+const deleteGraduatesByBatch = asyncHandler(async (req, res) => {
+  const { batchId } = req.params;
+
+  try {
+    const batchGraduates = await Graduate.findAll({
+      where: { batch_id: batchId },
+      attributes: ["national_id", "full_name"],
+    });
+
+    if (batchGraduates.length === 0) {
+      return res.status(404).json({
+        message: "No graduates found for this batch",
+      });
+    }
+
+    const deletedCount = await Graduate.destroy({
+      where: { batch_id: batchId },
+    });
+
+    res.json({
+      message: `Successfully deleted batch ${batchId}`,
+      deletedCount: deletedCount,
+      batchInfo: {
+        batchId: batchId,
+        totalDeleted: deletedCount,
+        sampleGraduates: batchGraduates.slice(0, 5).map((g) => ({
+          fullName: g.full_name,
+          nationalId: g.national_id,
+        })),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error deleting batch graduates",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /graduates-system/api/batches
+ * Get all batches with summary info
+ */
+const getAllBatches = asyncHandler(async (req, res) => {
+  try {
+    const allGraduates = await Graduate.findAll({
+      attributes: ["batch_id", "created_at"],
+      include: [
+        {
+          model: User,
+          as: "creator",
+          attributes: ["email", "full_name"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    const batchMap = new Map();
+
+    allGraduates.forEach((graduate) => {
+      const batchId = graduate.batch_id;
+      const createdAt = graduate.created_at;
+
+      if (!batchMap.has(batchId)) {
+        batchMap.set(batchId, {
+          batchId,
+          graduateCount: 0,
+          createdAt: createdAt,
+          createdBy: graduate.creator?.email,
+          createdByName: graduate.creator?.full_name,
+        });
+      }
+
+      const batch = batchMap.get(batchId);
+      batch.graduateCount++;
+    });
+
+    const batches = Array.from(batchMap.values()).sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    res.json({
+      totalBatches: batches.length,
+      batches: batches.map((batch) => ({
+        batchId: batch.batchId,
+        graduateCount: batch.graduateCount,
+        createdAt: batch.createdAt,
+        createdBy: batch.createdBy,
+        createdByName: batch.createdByName,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching batches",
+      error: error.message,
+    });
+  }
+});
+
+module.exports = {
+  addGraduates,
+  getGraduatesByBatch,
+  deleteGraduatesByBatch,
+  getAllBatches,
+};
