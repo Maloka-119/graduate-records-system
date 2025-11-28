@@ -7,14 +7,20 @@ const UploadHistoryPage = () => {
   const { t } = useTranslation();
   const [uploadHistory, setUploadHistory] = useState([]);
   const [selectedUpload, setSelectedUpload] = useState(null);
-
+  const token = localStorage.getItem('authToken');
+  
   useEffect(() => {
     loadUploadHistory();
   }, []);
 
   const loadUploadHistory = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/batches`);
+      const res = await fetch(`${BASE_URL}/api/batches`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await res.json();
       const formattedUploads = data.batches.map(batch => ({
         id: batch.batchId,
@@ -31,7 +37,13 @@ const UploadHistoryPage = () => {
 
   const loadUploadDetails = async (batchId) => {
     try {
-      const res = await fetch(`${BASE_URL}/graduates/batch/${batchId}`);
+    
+const res = await fetch(`${BASE_URL}/api/graduates/batch/${batchId}`, {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+});;
       const data = await res.json();
       setSelectedUpload({
         id: data.batchId,
@@ -48,7 +60,13 @@ const UploadHistoryPage = () => {
   const handleDeleteUpload = async (batchId) => {
     if (!window.confirm(t('deleteConfirm'))) return;
     try {
-      await fetch(`${BASE_URL}/graduates/batch/${batchId}`, { method: 'DELETE' });
+      await fetch(`${BASE_URL}/api/graduates/batch/${batchId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       setUploadHistory(prev => prev.filter(u => u.id !== batchId));
       setSelectedUpload(null);
     } catch (err) {

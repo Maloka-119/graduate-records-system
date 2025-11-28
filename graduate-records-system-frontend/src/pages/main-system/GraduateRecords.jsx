@@ -366,6 +366,7 @@
 // export default GraduateRecords;
 
 
+
 import { useTranslation } from 'react-i18next';
 import '../../i18n/i18n';
 import { Globe  } from 'lucide-react';
@@ -384,6 +385,7 @@ const GraduateRecords = ({ onLogout }) => {
   const [selectedUpload, setSelectedUpload] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const { t, i18n } = useTranslation();
+  const token = localStorage.getItem('authToken');
   const facultiesData = [
     { ar: "كلية الهندسة بحلوان", en: "Faculty of Engineering (Helwan)" },
     { ar: "كلية الهندسة بالمطرية", en: "Faculty of Engineering (Mataria)" },
@@ -424,24 +426,36 @@ const GraduateRecords = ({ onLogout }) => {
   
   const [newGraduatesBatch, setNewGraduatesBatch] = useState([]);
 
+  // console.log(localStorage.getItem('authToken'));
+
   useEffect(() => {
-    loadData();
+    fetchAllGraduates();
   }, []);
-
-  const loadData = async () => {
+  
+  const fetchAllGraduates = async () => {
     try {
-      const gradsRes = await fetch(`${BASE_URL}/graduates`);
-      const uploadsRes = await fetch(`${BASE_URL}/uploads`);
-      const gradsData = await gradsRes.json();
-      const uploadsData = await uploadsRes.json();
-
-      setGraduates(gradsData);
-      setUploadHistory(uploadsData);
+      const res = await fetch(`${BASE_URL}/api/allrecords`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      console.log('Graduates data:', data);
+  
+      if (Array.isArray(data.addedGraduates)) {
+        setGraduates(data.addedGraduates);
+      } else if (Array.isArray(data)) {
+        setGraduates(data);
+      }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Failed to fetch graduates:', error);
     }
   };
-
+  
+  
+  if (!token) {
+    alert('You are not logged in or token is missing');
+    return;
+  }
+  
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -455,12 +469,21 @@ const GraduateRecords = ({ onLogout }) => {
     formData.append('file', selectedFile);
   
     try {
-      const res = await fetch(`${BASE_URL}/graduates`, { method: 'POST', body: formData });
+      const res = await fetch(`${BASE_URL}/api/graduates`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
       const result = await res.json();
+      console.log('Upload response:', result);
   
       if (result.addedGraduates) {
         setGraduates(prev => [...prev, ...result.addedGraduates]);
       }
+  
+      const addedCount = result?.results?.added || 0;
   
       if (result.metadata) {
         setUploadHistory(prev => [...prev, {
@@ -469,16 +492,17 @@ const GraduateRecords = ({ onLogout }) => {
           createdByName: result.metadata.createdByName,
           createdAt: result.metadata.createdAt,
           fileInfo: result.fileInfo,
-          added: result.results.added
+          added: addedCount
         }]);
       }
   
       setSelectedFile(null);
-      alert(t('uploadSuccess', { count: result.results.added }));
+      alert(t('uploadSuccess', { count: addedCount }));
     } catch (error) {
       alert(t('uploadFailed', { message: error.message }));
     }
   };
+  
   
   const handleCancelUpload = () => {
     setSelectedFile(null);
@@ -502,9 +526,12 @@ const GraduateRecords = ({ onLogout }) => {
     if (newGraduatesBatch.length === 0) return;
   
     try {
-      const res = await fetch(`${BASE_URL}/graduates/batch`, {
+      const res = await fetch(`${BASE_URL}/api/graduates`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ graduates: newGraduatesBatch })
       });
       const result = await res.json();
@@ -529,6 +556,7 @@ const GraduateRecords = ({ onLogout }) => {
       alert(t('saveBatchFailed', { message: error.message }));
     }
   };
+  
 
   return (
     <div className="app-container" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
@@ -665,5 +693,3 @@ const GraduateRecords = ({ onLogout }) => {
 };
 
 export default GraduateRecords;
-
-

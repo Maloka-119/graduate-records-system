@@ -33,7 +33,7 @@ const Register = ({ onSwitchToLogin }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('${BASE_URL}/auth/register', {
+      const response = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -45,7 +45,7 @@ const Register = ({ onSwitchToLogin }) => {
           phone,
           password
         })
-      });
+      });      
 
       if (!response.ok) {
         const errorData = await response.json();

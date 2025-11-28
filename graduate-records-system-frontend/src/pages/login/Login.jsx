@@ -23,13 +23,12 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('${BASE_URL}/auth/login', {
+      const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
+      
 
       const data = await response.json();
 
@@ -42,6 +41,7 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
       if (data.token) {
         localStorage.setItem('authToken', data.token);
       }
+      
 
       onLogin(data.user || email);
     } catch (error) {
