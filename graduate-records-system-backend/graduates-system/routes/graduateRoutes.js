@@ -6,6 +6,7 @@ const {
   getGraduatesByBatch,
   deleteGraduatesByBatch,
   getAllBatches,
+  getAllGraduates,
 } = require("../controllers/graduateController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -64,5 +65,7 @@ router.get("/batches", protect, getAllBatches);
 router.get("/graduates/batch/:batchId", protect, getGraduatesByBatch);
 router.delete("/graduates/batch/:batchId", protect, deleteGraduatesByBatch);
 router.post("/graduates", protect, handleFileUpload, addGraduates);
+// في ملف routes/graduateRoutes.js أضف:
+router.get("/all-graduates", protect, getAllGraduates);
 
 module.exports = router;

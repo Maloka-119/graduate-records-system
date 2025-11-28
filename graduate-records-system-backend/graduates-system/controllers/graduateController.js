@@ -24,17 +24,76 @@ const addGraduates = asyncHandler(async (req, res) => {
   const addedGraduates = [];
   let graduatesArray = [];
 
-  const batchId = `batch_${Date.now()}_${Math.random()
+  // 🔴 DEBUG: بداية تحليل الوقت
+  console.log("=== DEBUG TIME ANALYSIS ===");
+  const now = new Date();
+  console.log("1. now (UTC):", now.toISOString());
+  console.log("1. now toString:", now.toString());
+  console.log("1. now getHours():", now.getHours());
+  console.log("1. now getUTCHours():", now.getUTCHours());
+  console.log("1. Timezone Offset:", now.getTimezoneOffset(), "minutes");
+
+  // تحديد الوقت المحلي الصحيح
+  let localTime;
+  const timezoneOffset = now.getTimezoneOffset();
+
+  if (timezoneOffset === -120) {
+    // الخادم في توقيت مصر (UTC+2)
+    console.log("🟢 Server is in Egypt time (UTC+2) - using current time");
+    localTime = now;
+  } else {
+    // الخادم في UTC أو توقيت آخر
+    console.log("🟡 Server is NOT in Egypt time - adding 2 hours");
+    localTime = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  }
+
+  console.log("2. Final localTime:", localTime.toString());
+  console.log("2. localTime getHours():", localTime.getHours());
+
+  // استخراج المكونات
+  const year = localTime.getFullYear();
+  const month = String(localTime.getMonth() + 1).padStart(2, "0");
+  const day = String(localTime.getDate()).padStart(2, "0");
+  const hours = String(localTime.getHours()).padStart(2, "0");
+  const minutes = String(localTime.getMinutes()).padStart(2, "0");
+  const seconds = String(localTime.getSeconds()).padStart(2, "0");
+
+  console.log("3. Extracted components:");
+  console.log("   - Year:", year);
+  console.log("   - Month:", month);
+  console.log("   - Day:", day);
+  console.log("   - Hours:", hours);
+  console.log("   - Minutes:", minutes);
+  console.log("   - Seconds:", seconds);
+
+  const localTimestamp = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+  const batchId = `batch_${localTimestamp}_${Math.random()
     .toString(36)
-    .substr(2, 9)}`;
+    .substr(2, 6)}`;
+
+  console.log("4. Final batchId:", batchId);
+  console.log(
+    "5. Current Egypt time should be:",
+    `${hours}:${minutes}:${seconds}`
+  );
+  console.log("=== END DEBUG ===");
 
   try {
+    // تحديد مصدر البيانات
     if (req.files && req.files.length > 0) {
+      // ملف مرفوع
       graduatesArray = await processUploadedFile(req.files[0]);
     } else if (req.body && req.body.graduates) {
+      // JSON data مع مفتاح graduates
       graduatesArray = Array.isArray(req.body.graduates)
         ? req.body.graduates
         : [req.body.graduates];
+    } else if (isManualEntryData(req.body)) {
+      // Manual Entry - بيانات مباشرة
+      graduatesArray = [req.body];
+    } else if (Array.isArray(req.body)) {
+      // مصفوفة مباشرة
+      graduatesArray = req.body;
     } else {
       return res.status(400).json({
         message: "No data provided. Please upload a file or send JSON data.",
@@ -51,37 +110,42 @@ const addGraduates = asyncHandler(async (req, res) => {
 
     for (const graduateData of graduatesArray) {
       try {
-        const validationResult = validateGraduateStructure(graduateData);
+        // تنظيف وتوحيد تنسيق البيانات
+        const normalizedData = normalizeGraduateData(graduateData);
+
+        const validationResult = validateGraduateStructure(normalizedData);
         if (!validationResult.isValid) {
           results.invalidStructure++;
           results.errors.push({
-            data: graduateData,
+            data: normalizedData,
             error: `Invalid structure: ${validationResult.message}`,
           });
           continue;
         }
 
         const existingGraduate = await Graduate.findOne({
-          where: { national_id: graduateData.nationalId },
+          where: { national_id: normalizedData.nationalId },
         });
 
         if (existingGraduate) {
           results.duplicates++;
           results.errors.push({
-            nationalId: graduateData.nationalId,
+            nationalId: normalizedData.nationalId,
             error: "Duplicate national ID",
           });
           continue;
         }
 
+        // ✅ التصحيح هنا: تمرير created_at يدوياً بالتوقيت المحلي
         const newGraduate = await Graduate.create({
-          full_name: graduateData.fullName,
-          national_id: graduateData.nationalId,
-          faculty: graduateData.faculty,
-          department: graduateData.department,
-          graduation_year: graduateData.graduationYear,
+          full_name: normalizedData.fullName,
+          national_id: normalizedData.nationalId,
+          faculty: normalizedData.faculty,
+          department: normalizedData.department,
+          graduation_year: normalizedData.graduationYear,
           created_by: currentUserId,
           batch_id: batchId,
+          created_at: localTime, // ✅ تمرير الوقت المحلي يدوياً
         });
 
         results.added++;
@@ -95,8 +159,8 @@ const addGraduates = asyncHandler(async (req, res) => {
         });
       } catch (error) {
         results.errors.push({
-          fullName: graduateData.fullName,
-          nationalId: graduateData.nationalId,
+          fullName: graduateData.fullName || graduateData.full_name,
+          nationalId: graduateData.nationalId || graduateData.national_id,
           error: error.message,
         });
       }
@@ -108,7 +172,14 @@ const addGraduates = asyncHandler(async (req, res) => {
         batchId: batchId,
         createdBy: currentUser.email,
         createdByName: currentUser.full_name,
-        createdAt: new Date().toISOString(),
+        createdAt: localTime.toISOString(), // ✅ استخدام localTime بدل now
+        localCreatedAt: `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`,
+        serverTime: now.toLocaleString("en-US", { timeZone: "UTC" }),
+        egyptTime: localTime.toLocaleString("en-US", {
+          timeZone: "Africa/Cairo",
+        }),
+        timezoneOffset: timezoneOffset,
+        serverLocation: timezoneOffset === -120 ? "Egypt (UTC+2)" : "Other",
       },
       results: results,
       addedGraduates: addedGraduates,
@@ -131,6 +202,108 @@ const addGraduates = asyncHandler(async (req, res) => {
   }
 });
 
+// باقي الدوال تبقى كما هي...
+// دالة للتحقق من بيانات Manual Entry
+function isManualEntryData(data) {
+  return (
+    data &&
+    (data.fullName ||
+      data.nationalId ||
+      data.faculty ||
+      data.department ||
+      data.graduationYear)
+  );
+}
+
+// دالة لتوحيد تنسيق البيانات
+function normalizeGraduateData(data) {
+  // دعم تنسيقات المفاتيح المختلفة
+  const normalized = {
+    fullName:
+      data.fullName ||
+      data.full_name ||
+      data["Full Name"] ||
+      data["full name"] ||
+      data["الاسم بالكامل"] ||
+      data["اسم الطالب"] ||
+      data["Name"] ||
+      data["name"],
+    nationalId:
+      data.nationalId ||
+      data.national_id ||
+      data["National ID"] ||
+      data["national id"] ||
+      data["رقم قومي"] ||
+      data["ID"] ||
+      data["id"],
+    faculty:
+      data.faculty ||
+      data["Faculty"] ||
+      data["faculty"] ||
+      data["كلية"] ||
+      data["الكليه"],
+    department:
+      data.department ||
+      data["Department"] ||
+      data["department"] ||
+      data["قسم"] ||
+      data["القسم"],
+    graduationYear:
+      data.graduationYear ||
+      data.graduation_year ||
+      data["Graduation Year"] ||
+      data["graduation year"] ||
+      data["سنة التخرج"] ||
+      data["Year"] ||
+      data["year"],
+  };
+
+  // تحويل graduationYear إلى رقم إذا كان نصاً
+  if (
+    normalized.graduationYear &&
+    typeof normalized.graduationYear === "string"
+  ) {
+    const year = parseInt(normalized.graduationYear);
+    if (!isNaN(year)) {
+      normalized.graduationYear = year;
+    }
+  }
+
+  return normalized;
+}
+
+// دالة التحقق من الهيكل (محدثة)
+function validateGraduateStructure(data) {
+  const requiredFields = [
+    "fullName",
+    "nationalId",
+    "faculty",
+    "department",
+    "graduationYear",
+  ];
+
+  for (const field of requiredFields) {
+    if (!data[field]) {
+      return {
+        isValid: false,
+        message: `Missing required field: ${field}`,
+      };
+    }
+  }
+
+  // التحقق من أن graduationYear رقم صالح
+  const year = parseInt(data.graduationYear);
+  if (isNaN(year) || year < 1900 || year > new Date().getFullYear() + 5) {
+    return {
+      isValid: false,
+      message: "graduationYear must be a valid year",
+    };
+  }
+
+  return { isValid: true };
+}
+
+// باقي الدوال تبقى كما هي بدون تغيير
 async function processUploadedFile(file) {
   switch (file.mimetype) {
     case "application/json":
@@ -183,67 +356,7 @@ function processExcelFile(file) {
     }
 
     return jsonData
-      .map((row) => {
-        const fullName =
-          row.fullName ||
-          row.full_name ||
-          row["full_name"] ||
-          row["fullName"] ||
-          row["الاسم بالكامل"] ||
-          row["Full Name"] ||
-          row["اسم الطالب"] ||
-          row["Name"] ||
-          row["name"] ||
-          row[0];
-
-        const nationalId =
-          row.nationalId ||
-          row.national_id ||
-          row["national_id"] ||
-          row["nationalId"] ||
-          row["رقم قومي"] ||
-          row["National ID"] ||
-          row["ID"] ||
-          row["id"] ||
-          row[1];
-
-        if (!nationalId || !fullName) {
-          return null;
-        }
-
-        const faculty =
-          row.faculty ||
-          row["faculty"] ||
-          row["كلية"] ||
-          row["Faculty"] ||
-          row[2];
-
-        const department =
-          row.department ||
-          row["department"] ||
-          row["قسم"] ||
-          row["Department"] ||
-          row["القسم"] ||
-          row[3];
-
-        const graduationYear =
-          row.graduationYear ||
-          row.graduation_year ||
-          row["graduation_year"] ||
-          row["graduationYear"] ||
-          row["سنة التخرج"] ||
-          row["Graduation Year"] ||
-          row["Year"] ||
-          row[4];
-
-        return {
-          fullName: fullName?.toString(),
-          nationalId: nationalId?.toString(),
-          faculty: faculty?.toString(),
-          department: department?.toString(),
-          graduationYear: parseInt(graduationYear) || graduationYear,
-        };
-      })
+      .map((row) => normalizeGraduateData(row))
       .filter(
         (item) => item && item.nationalId && item.nationalId.trim() !== ""
       );
@@ -254,34 +367,6 @@ function processExcelFile(file) {
 
 function processCSVFile(file) {
   return processExcelFile(file);
-}
-
-function validateGraduateStructure(data) {
-  const requiredFields = [
-    "fullName",
-    "nationalId",
-    "faculty",
-    "department",
-    "graduationYear",
-  ];
-
-  for (const field of requiredFields) {
-    if (!data[field]) {
-      return {
-        isValid: false,
-        message: `Missing required field: ${field}`,
-      };
-    }
-  }
-
-  if (typeof data["graduationYear"] !== "number") {
-    return {
-      isValid: false,
-      message: "graduationYear must be a number",
-    };
-  }
-
-  return { isValid: true };
 }
 
 /**
@@ -417,19 +502,95 @@ const getAllBatches = asyncHandler(async (req, res) => {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
 
-    res.json({
-      totalBatches: batches.length,
-      batches: batches.map((batch) => ({
+    // ✅ تصحيح الوقت في الريسبونس
+    const correctedBatches = batches.map((batch) => {
+      let correctedTime = batch.createdAt;
+
+      // إذا كان الخادم في توقيت مصر والوقت مسجل بـ UTC، أضف ساعتين
+      const timezoneOffset = new Date().getTimezoneOffset();
+      if (timezoneOffset === -120) {
+        // تحقق إذا الوقت مسجل بـ UTC (يظهر بساعتين أقل)
+        const createdAt = new Date(batch.createdAt);
+        const now = new Date();
+        if (createdAt.getHours() === now.getUTCHours()) {
+          // الوقت مسجل بـ UTC، أضف ساعتين
+          correctedTime = new Date(createdAt.getTime() + 2 * 60 * 60 * 1000);
+        }
+      }
+
+      return {
         batchId: batch.batchId,
         graduateCount: batch.graduateCount,
-        createdAt: batch.createdAt,
+        createdAt: correctedTime,
         createdBy: batch.createdBy,
         createdByName: batch.createdByName,
-      })),
+      };
+    });
+
+    res.json({
+      totalBatches: correctedBatches.length,
+      batches: correctedBatches,
     });
   } catch (error) {
     res.status(500).json({
       message: "Error fetching batches",
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * GET /graduates-system/api/all-graduates
+ * Get ALL graduates from ALL batches (organized by batch)
+ */
+/**
+ * GET /graduates-system/api/all-graduates
+ * Get ALL graduates from ALL batches in one flat array
+ */
+const getAllGraduates = asyncHandler(async (req, res) => {
+  try {
+    // جلب جميع الخريجين من جميع الباتشات
+    const allGraduates = await Graduate.findAll({
+      include: [
+        {
+          model: User,
+          as: "creator",
+          attributes: ["id", "email", "full_name"],
+        },
+      ],
+      order: [
+        ["created_at", "DESC"],
+        ["full_name", "ASC"],
+      ],
+    });
+
+    if (allGraduates.length === 0) {
+      return res.status(404).json({
+        message: "No graduates found in the database",
+      });
+    }
+
+    // تحويل البيانات إلى array واحدة مسطحة
+    const allGraduatesFlat = allGraduates.map((graduate) => ({
+      fullName: graduate.full_name,
+      nationalId: graduate.national_id,
+      faculty: graduate.faculty,
+      department: graduate.department,
+      graduationYear: graduate.graduation_year,
+    }));
+
+    // الريسبونس النهائي
+    const response = {
+      success: true,
+      totalGraduates: allGraduatesFlat.length,
+      graduates: allGraduatesFlat,
+    };
+
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching all graduates",
       error: error.message,
     });
   }
@@ -440,4 +601,5 @@ module.exports = {
   getGraduatesByBatch,
   deleteGraduatesByBatch,
   getAllBatches,
+  getAllGraduates,
 };
