@@ -4,6 +4,7 @@ import './Login.css';
 import { useTranslation } from 'react-i18next';
 import '../../i18n/i18n';
 import { Flag,Globe } from 'lucide-react';
+import { BASE_URL } from "../../component/api"
 
 const Login = ({ onLogin, onSwitchToRegister }) => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
@@ -22,7 +23,7 @@ const Login = ({ onLogin, onSwitchToRegister }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5002/graduates-system/auth/login', {
+      const response = await fetch('${BASE_URL}/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

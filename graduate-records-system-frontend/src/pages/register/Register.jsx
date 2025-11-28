@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import '../../i18n/i18n';
 import { Flag, User ,Globe} from 'lucide-react';
 import './Register.css'
-
+import { BASE_URL } from "../../component/api"
 
 const Register = ({ onSwitchToLogin }) => {
   const [credentials, setCredentials] = useState({
@@ -33,7 +33,7 @@ const Register = ({ onSwitchToLogin }) => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/register', {
+      const response = await fetch('${BASE_URL}/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
