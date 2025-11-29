@@ -65,21 +65,21 @@ const GraduateRecords = ({ onLogout }) => {
   
   const fetchAllGraduates = async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/all-records`, {
+      const res = await fetch(`${BASE_URL}/api/all-graduates`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const data = await res.json();
-      console.log('Graduates data:', data);
   
-      if (Array.isArray(data.addedGraduates)) {
-        setGraduates(data.addedGraduates);
-      } else if (Array.isArray(data)) {
-        setGraduates(data);
+      const data = await res.json();
+  
+      if (Array.isArray(data.graduates)) {
+        setGraduates(data.graduates);
       }
+      
     } catch (error) {
       console.error('Failed to fetch graduates:', error);
     }
   };
+  
   
   
   if (!token) {
@@ -108,7 +108,7 @@ const GraduateRecords = ({ onLogout }) => {
         body: formData
       });
       const result = await res.json();
-      console.log('Upload response:', result);
+      // console.log('Upload response:', result);
   
       // if (result.addedGraduates) {
       //   setGraduates(prev => [...prev, ...result.addedGraduates]);
@@ -125,6 +125,7 @@ const GraduateRecords = ({ onLogout }) => {
           fileInfo: result.fileInfo,
           added: addedCount
         }]);
+        fetchAllGraduates();
       }
   
       setSelectedFile(null);
@@ -180,6 +181,7 @@ const GraduateRecords = ({ onLogout }) => {
           fileInfo: { filename: 'manual entry', mimetype: 'manual', size: newGraduatesBatch.length },
           added: result.results.added
         }]);
+        fetchAllGraduates();
       }
   
       setNewGraduatesBatch([]);
@@ -187,6 +189,7 @@ const GraduateRecords = ({ onLogout }) => {
       alert(t('saveBatchFailed', { message: error.message }));
     }
   };
+  
   
 
   return (
@@ -300,16 +303,17 @@ const GraduateRecords = ({ onLogout }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {graduates.map((grad, idx) => (
-                    <tr key={grad.id} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
-                      <td>{grad.fullName}</td>
-                      <td>{grad.nationalId}</td>
-                      <td>{grad.faculty}</td>
-                      <td>{grad.department}</td>
-                      <td>{grad.graduationYear}</td>
-                    </tr>
-                  ))}
-                </tbody>
+  {graduates.map((grad, idx) => (
+    <tr key={idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+      <td>{grad.fullName}</td>
+      <td>{grad.nationalId}</td>
+      <td>{grad.faculty}</td>
+      <td>{grad.department}</td>
+      <td>{grad.graduationYear}</td>
+    </tr>
+  ))}
+</tbody>
+
               </table>
               {graduates.length === 0 && <div className="empty-state">{t('noRecords')}</div>}
             </div>
@@ -317,7 +321,7 @@ const GraduateRecords = ({ onLogout }) => {
         </div>
       )}
 
-      {activeView === 'history' && <UploadHistoryPage uploadHistory={uploadHistory}/>}
+      {activeView === 'history' && <UploadHistoryPage uploadHistory={uploadHistory} fetchAllGraduates={fetchAllGraduates}/>}
     </main>
   </div>
   );

@@ -3,7 +3,7 @@ import { Eye, Trash2, Calendar, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BASE_URL } from "../../component/api";
 
-const UploadHistoryPage = () => {
+const UploadHistoryPage = ({ fetchAllGraduates }) => {
   const { t } = useTranslation();
   const [uploadHistory, setUploadHistory] = useState([]);
   const [selectedUpload, setSelectedUpload] = useState(null);
@@ -69,6 +69,7 @@ const res = await fetch(`${BASE_URL}/api/graduates/batch/${batchId}`, {
       });
       setUploadHistory(prev => prev.filter(u => u.id !== batchId));
       setSelectedUpload(null);
+      fetchAllGraduates();
     } catch (err) {
       console.error(err);
     }
@@ -128,7 +129,7 @@ const res = await fetch(`${BASE_URL}/api/graduates/batch/${batchId}`, {
               </thead>
               <tbody>
                 {selectedUpload.data.map((grad, idx) => (
-                  <tr key={grad.id} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+                  <tr key={idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
                     <td>{grad.fullName}</td>
                     <td>{grad.nationalId}</td>
                     <td>{grad.faculty}</td>
