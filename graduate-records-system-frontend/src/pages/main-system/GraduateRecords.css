@@ -299,8 +299,11 @@ body, html {
 
 /* ==================== Table ==================== */
 .table-container {
+    max-height: 400px;
+    overflow-y: auto;
     overflow-x: auto;
 }
+
 
 .data-table {
     width: 100%;
