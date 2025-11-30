@@ -1,9 +1,7 @@
 const asyncHandler = require('express-async-handler');
-const { User, RefreshToken } = require('../models');
+const { User } = require('../models');
 const {
   generateAccessToken,
-  generateRefreshToken,
-  getRefreshTokenExpiry,
 } = require('../utils/jwt');
 
 /**
@@ -36,92 +34,14 @@ const login = asyncHandler(async (req, res) => {
     return res.status(401).json({ message: 'Invalid email or password' });
   }
 
-  // Generate tokens
+  // Generate access token
   const accessToken = generateAccessToken(user.id);
-  const refreshTokenValue = generateRefreshToken();
-  const expiresAt = getRefreshTokenExpiry();
-
-  // Store refresh token in database
-  await RefreshToken.create({
-    user_id: user.id,
-    token: refreshTokenValue,
-    expires_at: expiresAt,
-    revoked: false,
-  });
 
   res.json({
     id: user.id,
     email: user.email,
     token: accessToken,
   });
-});
-
-/**
- * POST /graduates-system/auth/refresh
- * Refresh access token using refresh token
- */
-const refresh = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    return res.status(400).json({ message: 'Refresh token is required' });
-  }
-
-  // Find refresh token in database
-  const tokenRecord = await RefreshToken.findOne({
-    where: { token: refreshToken },
-    include: [{ model: User, as: 'user' }],
-  });
-
-  if (!tokenRecord) {
-    return res.status(401).json({ message: 'Invalid refresh token' });
-  }
-
-  // Check if token is revoked
-  if (tokenRecord.revoked) {
-    return res.status(401).json({ message: 'Refresh token has been revoked' });
-  }
-
-  // Check if token is expired
-  if (new Date() > new Date(tokenRecord.expires_at)) {
-    return res.status(401).json({ message: 'Refresh token has expired' });
-  }
-
-  // Check if user is active
-  if (!tokenRecord.user || !tokenRecord.user.is_active) {
-    return res.status(401).json({ message: 'User account is inactive' });
-  }
-
-  // Generate new access token
-  const accessToken = generateAccessToken(tokenRecord.user_id);
-
-  res.json({
-    accessToken,
-  });
-});
-
-/**
- * POST /graduates-system/auth/logout
- * Revoke refresh token
- */
-const logout = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    return res.status(400).json({ message: 'Refresh token is required' });
-  }
-
-  // Find and revoke refresh token
-  const tokenRecord = await RefreshToken.findOne({
-    where: { token: refreshToken },
-  });
-
-  if (tokenRecord) {
-    tokenRecord.revoked = true;
-    await tokenRecord.save();
-  }
-
-  res.json({ message: 'Logged out successfully' });
 });
 
 /**
@@ -207,11 +127,53 @@ const createTestUser = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * POST /graduates-system/auth/reset-password
+ * Reset password using National ID
+ */
+const resetPassword = asyncHandler(async (req, res) => {
+  // Check if request body exists
+  if (!req.body) {
+    return res.status(400).json({ message: 'Request body is required' });
+  }
+
+  const { nationalId, newPassword } = req.body;
+
+  // Validate input
+  if (!nationalId || !newPassword) {
+    return res.status(400).json({ message: 'National ID and new password are required' });
+  }
+
+  // Validate password length
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+  }
+
+  // Find user by National ID
+  const user = await User.findOne({ where: { national_id: nationalId } });
+
+  if (!user) {
+    return res.status(404).json({ message: 'National ID not found' });
+  }
+
+  // Check if user is active
+  if (!user.is_active) {
+    return res.status(403).json({ message: 'Account is inactive. Please contact support.' });
+  }
+
+  // Update password (will be automatically hashed by the beforeUpdate hook)
+  user.password_hash = newPassword;
+  await user.save();
+
+  res.json({
+    message: 'Password reset successfully',
+  });
+});
+
 module.exports = {
   login,
   register,
-  refresh,
-  logout,
   createTestUser,
+  resetPassword,
 };
 
