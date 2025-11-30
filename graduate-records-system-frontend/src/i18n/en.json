@@ -57,7 +57,24 @@
     "saveBatchFailed": "Failed to save batch: {{message}}",
     "deleteUploadFailed": "Failed to delete upload: {{message}}",
     "appTitle": "Graduate Records System",
-    "welcomeUser": "Welcome, {{user}}"
+    "welcomeUser": "Welcome, {{user}}",
+
+    "forgotPassword": "Forgot Password?",
+    "fillAllFields": "Please fill all fields",
+    "invalidCredentials": "Invalid email or password",
+    "somethingWentWrong": "Something went wrong",
+    "resetPassword": "Reset Password",
+    "nationalId": "National ID",
+    "nationalIdPlaceholder": "Enter your national ID",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "failedReset": "Failed to reset password",
+    "resetSuccess": "Password reset successfully",
+    "resetPasswordBtn": "Reset Password",
+    "backToLogin": "Back to Login"
   }
   
   

@@ -57,7 +57,24 @@
     "saveBatchFailed": "فشل حفظ الدفعة: {{message}}",
     "deleteUploadFailed": "فشل حذف التحميل: {{message}}",
     "appTitle": "نظام سجلات الخريجين",
-    "welcomeUser": "مرحبًا، {{user}}"
+    "welcomeUser": "مرحبًا، {{user}}",
+
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "fillAllFields": "يرجى ملء جميع الحقول",
+    "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "somethingWentWrong": "حدث خطأ ما",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "nationalId": "الرقم القومي",
+    "nationalIdPlaceholder": "أدخل الرقم القومي",
+    "newPassword": "كلمة المرور الجديدة",
+    "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور الجديدة",
+    "passwordsDoNotMatch": "كلمتا المرور غير متطابقتين",
+    "failedReset": "فشل في إعادة تعيين كلمة المرور",
+    "resetSuccess": "تم إعادة تعيين كلمة المرور بنجاح",
+    "resetPasswordBtn": "إعادة تعيين",
+    "backToLogin": "العودة لتسجيل الدخول"
   }
   
   
