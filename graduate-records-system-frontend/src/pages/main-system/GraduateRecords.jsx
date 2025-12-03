@@ -69,16 +69,26 @@ const GraduateRecords = ({ onLogout }) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
   
+      // لو مفيش بيانات
+      if (res.status === 404) {
+        setGraduates([]); // ← أهم حاجة
+        return;
+      }
+  
       const data = await res.json();
   
       if (Array.isArray(data.graduates)) {
         setGraduates(data.graduates);
+      } else {
+        setGraduates([]); // ← تأمين إضافي
       }
-      
+  
     } catch (error) {
       console.error('Failed to fetch graduates:', error);
+      setGraduates([]); // ← عشان ميسيبش البيانات القديمة
     }
   };
+  
   
   
   
