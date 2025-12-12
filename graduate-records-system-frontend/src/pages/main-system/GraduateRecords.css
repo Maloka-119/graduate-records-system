@@ -595,3 +595,26 @@ button.trash-btn {
 .header-content[dir="rtl"] {
     flex-direction: row-reverse;
 }
+
+.filters-row {
+    display: flex;
+    gap: 10px;      /* مسافة بين كل فلتر */
+    margin-bottom: 10px;
+    flex-wrap: wrap; /* لو الشاشة ضيقة ينتقل للفلاتر لسطر ثاني */
+  }
+  
+  .search-input {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 150px;  /* عرض افتراضي */
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  
+  .search-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+    outline: none;
+  }
+  

@@ -90,6 +90,13 @@ const GraduateRecords = ({ onLogout }) => {
   };
   
   
+  const [searchFilters, setSearchFilters] = useState({
+    fullName: '',
+    nationalId: '',
+    faculty: '',
+    department: '',
+    graduationYear: ''
+  });
   
   
   if (!token) {
@@ -300,34 +307,89 @@ const GraduateRecords = ({ onLogout }) => {
           </section>
 
           <section className="card">
-            <h2 className="card-title"><Database className="icon-sm" /> {t('allRecords')} ({graduates.length})</h2>
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>{t('fullName')}</th>
-                    <th>{t('nationalId')}</th>
-                    <th>{t('faculty')}</th>
-                    <th>{t('department')}</th>
-                    <th>{t('graduationYear')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-  {graduates.map((grad, idx) => (
-    <tr key={idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
-      <td>{grad.fullName}</td>
-      <td>{grad.nationalId}</td>
-      <td>{grad.faculty}</td>
-      <td>{grad.department}</td>
-      <td>{grad.graduationYear}</td>
-    </tr>
+  <h2 className="card-title"><Database className="icon-sm" /> {t('allRecords')} ({graduates.length})</h2>
+  
+  <h4 style={{color:"darkgrey"}}>{t('search by')} :</h4>
+    {/* فلاتر البحث */}
+    <div className="filters-row">
+      <input
+        type="text"
+        placeholder={t('fullName')}
+        value={searchFilters.fullName}
+        onChange={(e) => setSearchFilters({...searchFilters, fullName: e.target.value})}
+        className="search-input"
+      />
+      <input
+        type="text"
+        placeholder={t('nationalId')}
+        value={searchFilters.nationalId}
+        onChange={(e) => setSearchFilters({...searchFilters, nationalId: e.target.value})}
+        className="search-input"
+      />
+     <select
+  value={searchFilters.faculty}
+  onChange={(e) => setSearchFilters({ ...searchFilters, faculty: e.target.value })}
+  className="search-input"
+>
+  <option value="">{t('faculty')}</option>
+  {facultiesData.map((f, idx) => (
+    <option key={idx} value={i18n.language === 'ar' ? f.ar : f.en}>
+      {i18n.language === 'ar' ? f.ar : f.en}
+    </option>
   ))}
-</tbody>
+</select>
 
-              </table>
-              {graduates.length === 0 && <div className="empty-state">{t('noRecords')}</div>}
-            </div>
-          </section>
+      <input
+        type="text"
+        placeholder={t('department')}
+        value={searchFilters.department}
+        onChange={(e) => setSearchFilters({...searchFilters, department: e.target.value})}
+        className="search-input"
+      />
+      <input
+        type="number"
+        placeholder={t('graduationYear')}
+        value={searchFilters.graduationYear}
+        onChange={(e) => setSearchFilters({...searchFilters, graduationYear: e.target.value})}
+        className="search-input"
+      />
+    </div>
+    <div className="table-container">
+    <table className="data-table">
+      <thead>
+        <tr>
+          <th>{t('fullName')}</th>
+          <th>{t('nationalId')}</th>
+          <th>{t('faculty')}</th>
+          <th>{t('department')}</th>
+          <th>{t('graduationYear')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {graduates
+          .filter(grad => 
+            grad.fullName.toLowerCase().includes(searchFilters.fullName.toLowerCase()) &&
+            grad.nationalId.toString().includes(searchFilters.nationalId) &&
+            grad.faculty.toLowerCase().includes(searchFilters.faculty.toLowerCase()) &&
+            grad.department.toLowerCase().includes(searchFilters.department.toLowerCase()) &&
+            grad.graduationYear.toString().includes(searchFilters.graduationYear)
+          )
+          .map((grad, idx) => (
+            <tr key={idx} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
+              <td>{grad.fullName}</td>
+              <td>{grad.nationalId}</td>
+              <td>{grad.faculty}</td>
+              <td>{grad.department}</td>
+              <td>{grad.graduationYear}</td>
+            </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {graduates.length === 0 && <div className="empty-state">{t('noRecords')}</div>}
+  </div>
+</section>
+
         </div>
       )}
 
